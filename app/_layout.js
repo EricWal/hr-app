@@ -1,5 +1,10 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
+import { RequestsProvider } from "../context/RequestsContext";
 
 export default function Layout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <RequestsProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </RequestsProvider>
+  );
 }

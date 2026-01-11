@@ -1,5 +1,5 @@
-import { View, Text, Button } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, Button } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function EmployeeHome() {
   const router = useRouter();
@@ -10,12 +10,14 @@ export default function EmployeeHome() {
 
       <Button
         title="طلب استئذان"
-        onPress={() => alert('قريبًا')}
+        onPress={() => router.push("/(employee)/requests/leave")}
       />
 
+      <Button title="طلب إجازة" onPress={() => alert("قريبًا")} />
+
       <Button
-        title="طلب إجازة"
-        onPress={() => alert('قريبًا')}
+        title="طلباتي"
+        onPress={() => router.push("/(employee)/requests/list")}
       />
     </View>
   );
