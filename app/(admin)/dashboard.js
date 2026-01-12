@@ -1,5 +1,7 @@
 // استيراد مكونات الواجهة من React Native
-import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
+import { SafeAreaView, View, Text, FlatList, Button, StyleSheet, Platform, StatusBar } from 'react-native';
+import { colors } from '../../constants/colors';
+import { fonts } from '../../constants/fonts';
 
 // استيراد hook خاص بالطلبات من Context
 import { useRequests } from '../../context/RequestsContext';
@@ -24,7 +26,7 @@ export default function AdminDashboard() {
 
   return (
     // الحاوية الرئيسية للصفحة
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
 
       {/* عنوان الصفحة */}
       <Text style={styles.title}>لوحة الإدارة - الطلبات</Text>
@@ -43,21 +45,21 @@ export default function AdminDashboard() {
           <View style={styles.card}>
 
             {/* نوع الطلب */}
-            <Text>النوع: {item.type}</Text>
+            <Text style={styles.cardText}>النوع: {item.type}</Text>
 
             {/* تاريخ الطلب */}
-            <Text>التاريخ: {item.date}</Text>
+            <Text style={styles.cardText}>التاريخ: {item.date}</Text>
 
             {/* وقت الاستئذان */}
-            <Text>
+            <Text style={styles.cardText}>
               الوقت: {item.fromTime} - {item.toTime}
             </Text>
 
             {/* سبب الطلب */}
-            <Text>السبب: {item.reason}</Text>
+            <Text style={styles.cardText}>السبب: {item.reason}</Text>
 
             {/* حالة الطلب الحالية */}
-            <Text style={styles.status}>
+            <Text style={[styles.status, styles.cardText]}>
               الحالة: {item.status}
             </Text>
 
@@ -74,7 +76,7 @@ export default function AdminDashboard() {
                 {/* زر الرفض */}
                 <Button
                   title="رفض"
-                  color="red"
+                  color={colors.error}
                   onPress={() => rejectRequest(item.id)}
                 />
 
@@ -82,8 +84,9 @@ export default function AdminDashboard() {
             )}
           </View>
         )}
+        contentContainerStyle={{ padding: 20 }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -91,32 +94,47 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   // الحاوية الرئيسية
   container: {
-    padding: 20
+    flex: 1,
+    backgroundColor: colors.background.main,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0
   },
 
   // عنوان الصفحة
   title: {
-    fontSize: 22,
-    marginBottom: 15,
-    fontWeight: 'bold'
+    fontSize: 20,
+    marginBottom: 12,
+    fontFamily: fonts.bold,
+    color: colors.text.primary,
+    paddingHorizontal: 20,
+    paddingTop: 12
   },
 
   // كرت الطلب
   card: {
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10
+    backgroundColor: colors.background.card,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    marginHorizontal: 20
   },
 
   // نص الحالة
   status: {
-    marginTop: 5,
-    fontWeight: 'bold'
+    marginTop: 6,
+    fontFamily: fonts.semiBold,
+    color: colors.text.primary
+  },
+
+  cardText: {
+    fontFamily: fonts.regular,
+    color: colors.text.primary,
+    marginTop: 4
   },
 
   // أزرار الموافقة / الرفض
   actions: {
-    marginTop: 10
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   }
 });
