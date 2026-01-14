@@ -179,6 +179,8 @@ export default function LeaveRequest() {
   const [toTimeMinutes, setToTimeMinutes] = useState(null);
   const [showFromTime, setShowFromTime] = useState(false);
   const [showToTime, setShowToTime] = useState(false);
+  // whether toTime was auto-set based on fromTime
+  const [toTimeAuto, setToTimeAuto] = useState(true);
 
   const [notes, setNotes] = useState("");
 
@@ -189,6 +191,8 @@ export default function LeaveRequest() {
   // Validation / UI state
   const [errors, setErrors] = useState({});
   const [remainingMinutes, setRemainingMinutes] = useState(8 * 60); // 8 hours default
+  const [remainingLeaves, setRemainingLeaves] = useState(4); // 4 leaves per month default
+  const [ackChecked, setAckChecked] = useState(false);
 
   // timezone value
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -204,13 +208,44 @@ export default function LeaveRequest() {
 
   // compute remaining hours from context requests (sum of durationMinutes for 'استئذان')
   React.useEffect(() => {
-    const used = (Array.isArray(requests) ? requests : [])
+    const arr = Array.isArray(requests) ? requests : [];
+    const used = arr
       .filter(
         (r) => r.type === "استئذان" && typeof r.durationMinutes === "number"
       )
       .reduce((s, r) => s + (r.durationMinutes || 0), 0);
+    // Count how many leave requests in the current month
+    const usedCount = arr.filter(
+      (r) =>
+        r.type === "استئذان" &&
+        typeof r.date === "string" &&
+        r.date.startsWith(
+          `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`
+        )
+    ).length;
+
     setRemainingMinutes(Math.max(0, 8 * 60 - used));
+    setRemainingLeaves(Math.max(0, 4 - usedCount));
   }, [requests]);
+
+  // set default fromTime to 08:00 and auto-set toTime = from + 30min if not picked by user
+  React.useEffect(() => {
+    if (fromTimeMinutes == null) {
+      const defaultMinutes = 8 * 60;
+      // setFromTimeMinutes(defaultMinutes);
+      // setFromTime(timeToString(8, 0, 'AM', timezone));
+      // auto set toTime to from + 30
+      const toDefault = defaultMinutes + 30;
+      // setToTimeMinutes(toDefault);
+      // compute display
+      const th = Math.floor(toDefault / 60) % 24;
+      const tm = toDefault % 60;
+      const tah = th % 12 === 0 ? 12 : th % 12;
+      const tampm = th >= 12 ? "PM" : "AM";
+      // setToTime(timeToString(tah, tm, tampm, timezone));
+      setToTimeAuto(true);
+    }
+  }, []);
 
   const onPickDay = (d) => {
     setDate(formatDate(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -243,6 +278,8 @@ export default function LeaveRequest() {
     }
 
     if (!signature) newErrors.signature = "يرجى توقيع النموذج";
+
+    if (!ackChecked) newErrors.ack = "يرجى تأكيد صحة البيانات";
 
     setErrors(newErrors);
 
@@ -394,23 +431,32 @@ export default function LeaveRequest() {
     );
   }
 
+  const currentDuration =
+    fromTimeMinutes != null && toTimeMinutes != null
+      ? toTimeMinutes - fromTimeMinutes
+      : 0;
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>طلب استئذان</Text>
 
-
         <Text style={styles.remaining}>
-
-<Text style={styles.titleBold}>ملاحظة</Text> : يحق للموظف التمتع بعدد <Text style={styles.titleBold}>8</Text> ساعات تقسم على <Text style={styles.titleBold}>4</Text> أستئذانات
-              على ان لا يزيد الاستئذان عن <Text style={styles.titleBold}>3</Text> ساعات .
-
+          <Text style={styles.titleBold}>ملاحظة</Text> : يحق للموظف التمتع بعدد{" "}
+          <Text style={styles.titleBold}>8</Text> ساعات تقسم على{" "}
+          <Text style={styles.titleBold}>4</Text> أستئذانات على ان لا يزيد
+          الاستئذان عن <Text style={styles.titleBold}>3</Text> ساعات .
         </Text>
 
-                <Text style={styles.remaining}>
-          {" "}
-          المتبقي من الاستئذان : <Text style={styles.titleBold}>{Math.floor(remainingMinutes / 60)}</Text> ساعة{" "}
-          <Text style={styles.titleBold}>{remainingMinutes % 60} </Text>دقيقة
+        <Text style={styles.remaining}>
+          المتبقي من الاستئذان :{" "}
+          <Text style={styles.titleBold}>
+            {Math.floor(remainingMinutes / 60)}
+          </Text>{" "}
+          ساعة <Text style={styles.titleBold}>{remainingMinutes % 60}</Text>{" "}
+          دقيقة {"\n"}
+          <Text style={styles.titleBold}>{remainingLeaves}</Text> من{" "}
+          <Text style={styles.titleBold}>4</Text> استئذانات متاحة
         </Text>
 
         {/* Employee info - disabled */}
@@ -459,7 +505,11 @@ export default function LeaveRequest() {
               color: date ? colors.text.primary : colors.text.tertiary,
             }}
           >
-            {date ? `${date} - يوم : ${selectedDayName || ""}` : "اختر التاريخ"}
+            {date ? (
+              `${date} - يوم : ${selectedDayName || ""}`
+            ) : (
+              <Text style={styles.timePlaceholderValue}>اختر التاريخ</Text>
+            )}
           </Text>
         </TouchableOpacity>
         {errors.date && (
@@ -557,38 +607,68 @@ export default function LeaveRequest() {
         {/* Time pickers */}
         <Text style={styles.labelSmall}>وقت الاستئذان</Text>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <TouchableOpacity
-            style={[styles.input, { flex: 1, marginLeft: 8 }]}
-            onPress={() => setShowToTime(true)}
-          >
+          <View style={{ flex: 1, marginLeft: 8 }}>
             <Text
-              style={{
-                textAlign: "right",
-                color: toTime ? colors.text.primary : colors.text.tertiary,
-              }}
+              style={[
+                styles.labelSmall,
+                { marginBottom: 6, textAlign: "right" },
+              ]}
             >
-              {toTime || "الى"}
+              إلى
             </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowToTime(true)}
+            >
+              <Text
+                style={{
+                  textAlign: "right",
+                  color: toTime ? colors.text.primary : colors.text.tertiary,
+                }}
+              >
+                {toTime || (
+                  <Text style={styles.timePlaceholderValue}>
+                    نهاية الاستئذان
+                  </Text>
+                )}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            style={[styles.input, { flex: 1, marginRight: 8 }]}
-            onPress={() => setShowFromTime(true)}
-          >
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text
-              style={{
-                textAlign: "right",
-                color: fromTime ? colors.text.primary : colors.text.tertiary,
-              }}
+              style={[
+                styles.labelSmall,
+                { marginBottom: 6, textAlign: "right" },
+              ]}
             >
-              {fromTime || "من"}
+              من
             </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowFromTime(true)}
+            >
+              <Text
+                style={{
+                  textAlign: "right",
+                  color: fromTime ? colors.text.primary : colors.text.tertiary,
+                }}
+              >
+                {fromTime || (
+                  <Text style={styles.timePlaceholderValue}>
+                    بداية الاستئذان
+                  </Text>
+                )}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TimePicker
           visible={showFromTime}
-          initial={fromTime}
+          initial={
+            fromTimeMinutes != null ? { minutes: fromTimeMinutes } : fromTime
+          }
           onClose={() => setShowFromTime(false)}
           onPick={(v) => {
             setFromTime(v.display);
@@ -600,12 +680,13 @@ export default function LeaveRequest() {
 
         <TimePicker
           visible={showToTime}
-          initial={toTime}
+          initial={toTimeMinutes != null ? { minutes: toTimeMinutes } : toTime}
           onClose={() => setShowToTime(false)}
           onPick={(v) => {
             setToTime(v.display);
             setToTimeMinutes(v.minutes);
             setShowToTime(false);
+            setToTimeAuto(false);
             setErrors((e) => ({ ...e, time: undefined }));
           }}
         />
@@ -616,65 +697,122 @@ export default function LeaveRequest() {
           </Text>
         )}
 
-        {/* Signature preview / action */}
-        {signature ? (
-          <TouchableOpacity
-            onPress={() => setShowSigModal(true)}
-            style={[sigStyles.canvas, { marginBottom: 8 }]}
+        {fromTimeMinutes !== null && toTimeMinutes !== null && (
+          <View
+            style={{
+              backgroundColor: colors.background.subtle,
+              borderRadius: 12,
+              padding: 16,
+              marginVertical: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
           >
-            {signature.map((stroke, i) => (
-              <View key={i} pointerEvents="none">
-                {stroke.map((p, idx) => (
-                  <View
-                    key={idx}
-                    style={{
-                      position: "absolute",
-                      left: p.x - 2,
-                      top: p.y - 2,
-                      width: 4,
-                      height: 4,
-                      borderRadius: 2,
-                      backgroundColor: "#111",
-                    }}
-                  />
-                ))}
-              </View>
-            ))}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.input,
-              { height: 160, alignItems: "center", justifyContent: "center" },
-            ]}
-            onPress={() => setShowSigModal(true)}
-          >
-            <Text style={{ color: colors.text.tertiary }}>اضغط للتوقيع</Text>
-          </TouchableOpacity>
-        )}
+            <Text
+              style={{
+                fontFamily: fonts.medium,
+                color: colors.text.secondary,
+                marginBottom: 8,
+                textAlign: "right",
+              }}
+            >
+              ملخص الطلب الحالي
+            </Text>
 
-        {errors.signature && (
-          <Text style={{ color: colors.error, marginBottom: 8 }}>
-            {errors.signature}
-          </Text>
-        )}
+            <Text
+              style={{
+                fontFamily: fonts.regular,
+                color:
+                  currentDuration > 3 * 60 ? colors.error : colors.text.primary,
+                textAlign: "right",
+              }}
+            >
+              • المدة المطلوبة: {Math.max(0, Math.floor(currentDuration / 60))}{" "}
+              ساعة و {Math.max(0, currentDuration % 60)} دقيقة
+            </Text>
 
-        <Modal visible={showSigModal} transparent animationType="slide">
-          <View style={modalStyles.backdrop}>
-            <View style={modalStyles.sheet}>
-              <Text style={modalStyles.sheetTitle}>التوقيع</Text>
-              <SignaturePad onSave={onSaveSignature} />
-              <View style={{ marginTop: 8 }}>
-                <Button title="إغلاق" onPress={() => setShowSigModal(false)} />
-              </View>
-            </View>
+            <Text
+              style={{
+                fontFamily: fonts.regular,
+                color: colors.text.primary,
+                textAlign: "right",
+                marginTop: 8,
+              }}
+            >
+              • الرصيد المتبقي قبل الطلب: {Math.floor(remainingMinutes / 60)}{" "}
+              ساعة و {remainingMinutes % 60} دقيقة
+            </Text>
+
+            <Text
+              style={{
+                fontFamily: fonts.regular,
+                color: colors.text.primary,
+                textAlign: "right",
+                marginTop: 4,
+              }}
+            >
+              • الرصيد المتبقي بعد الطلب:{" "}
+              {Math.max(
+                0,
+                Math.floor(
+                  (remainingMinutes - (toTimeMinutes - fromTimeMinutes)) / 60
+                )
+              )}{" "}
+              ساعة و{" "}
+              {Math.max(
+                0,
+                (remainingMinutes - (toTimeMinutes - fromTimeMinutes)) % 60
+              )}{" "}
+              دقيقة
+            </Text>
+
+            {toTimeMinutes - fromTimeMinutes > remainingMinutes && (
+              <Text
+                style={{
+                  color: colors.error,
+                  marginTop: 12,
+                  textAlign: "right",
+                  fontFamily: fonts.medium,
+                }}
+              >
+                ⚠️ المدة تتجاوز الرصيد المتاح — لن يتم قبول الطلب
+              </Text>
+            )}
           </View>
-        </Modal>
+        )}
+
+        <View style={{ marginTop: 8 }}>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => {
+              setAckChecked((s) => !s);
+              setErrors((e) => ({ ...e, ack: undefined }));
+            }}
+            activeOpacity={0.8}
+          >
+            <View
+              style={[
+                styles.checkboxBox,
+                ackChecked && { backgroundColor: colors.primary },
+              ]}
+            />
+            <Text style={styles.checkboxLabel}>أقر بصحة البيانات</Text>
+          </TouchableOpacity>
+          {errors.ack && (
+            <Text style={{ color: colors.error, marginTop: 6 }}>
+              {errors.ack}
+            </Text>
+          )}
+        </View>
 
         <TouchableOpacity
-          style={styles.submitButton}
+          style={[
+            styles.submitButton,
+            !ackChecked && styles.submitButtonDisabled,
+          ]}
           onPress={validateAndSubmit}
           activeOpacity={0.85}
+          disabled={!ackChecked}
         >
           <Text style={styles.submitText}>إرسال الطلب</Text>
         </TouchableOpacity>
@@ -795,15 +933,38 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
+  submitButtonDisabled: {
+    opacity: 0.6,
+    backgroundColor: colors.border,
+  },
   submitText: {
     fontFamily: fonts.bold,
     color: colors.text.inverse,
     fontSize: 16,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 4,
+    marginRight: 8,
+    backgroundColor: "#fff",
+  },
+  checkboxLabel: {
+    fontFamily: fonts.regular,
+    color: colors.text.primary,
   },
   titleBold: {
     fontSize: 15,
     marginBottom: 6,
     fontFamily: fonts.bold,
     color: colors.text.primary,
-  }
+  },
+  timePlaceholderValue: { fontFamily: fonts.medium, fontSize: 12 },
 });

@@ -1,5 +1,6 @@
 // استيراد مكونات الواجهة من React Native
 import { SafeAreaView, View, Text, FlatList, Button, StyleSheet, Platform, StatusBar } from 'react-native';
+import { useState } from 'react';
 import { colors } from '../../constants/colors';
 import { fonts } from '../../constants/fonts';
 
