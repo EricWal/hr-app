@@ -277,8 +277,6 @@ export default function LeaveRequest() {
         newErrors.time = "لا يوجد رصيد كافٍ لهذا المدة";
     }
 
-    if (!signature) newErrors.signature = "يرجى توقيع النموذج";
-
     if (!ackChecked) newErrors.ack = "يرجى تأكيد صحة البيانات";
 
     setErrors(newErrors);
@@ -300,6 +298,7 @@ export default function LeaveRequest() {
       department,
       signatureExists: !!signature,
       status: "قيد المراجعة",
+      createdDate: new Date().toISOString().split('T')[0],
     };
 
     addRequest(request);

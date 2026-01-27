@@ -10,10 +10,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // بيانات وهمية مؤقتًا - استبدلها لاحقًا بالـ authentication الحقيقي
+
+    // Dummy Login Details
     if (email === 'employee@test.com') {
       router.replace('/(employee)/home');
-    } else if (email === 'admin@test.com' && password === 'admin123') {
+    } else if (email === 'admin@test.com' && password === '123') {
       router.replace('/(admin)/dashboard');
     } else {
       alert('البريد الإلكتروني أو كلمة المرور غير صحيحة');

@@ -60,11 +60,18 @@ export function RequestsProvider({ children }) {
   };
 
   // تغيير حالة الطلب (موافقة / رفض)
-  const updateStatus = (id, status) => {
+  const updateStatus = (id, status, rejectionReason = null) => {
     // نعدّل الطلب المطلوب فقط
-    const updatedRequests = requests.map((r) =>
-      r.id === id ? { ...r, status } : r
-    );
+    const updatedRequests = requests.map((r) => {
+      if (r.id === id) {
+        const updated = { ...r, status };
+        if (rejectionReason) {
+          updated.rejectionReason = rejectionReason;
+        }
+        return updated;
+      }
+      return r;
+    });
 
     // نحدّث الـ state
     setRequests(updatedRequests);
