@@ -2,6 +2,25 @@
 
 A comprehensive React Native mobile application for managing employee leave requests, absence permissions, and administrative review workflows.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/login.png" width="250" alt="Login Screen"/>
+      <p><b>Login Screen</b></p>
+    </td>
+    <td align="center">
+      <img src="screenshots/dashboard.png" width="250" alt="Employee Dashboard"/>
+      <p><b>Employee Dashboard</b></p>
+    </td>
+    <td align="center">
+      <img src="screenshots/summary_order.png" width="250" alt="Request Summary"/>
+      <p><b>Request Summary Modal</b></p>
+    </td>
+  </tr>
+</table>
+
 ## Overview
 
 The HR App is a full-featured human resources management system built with React Native and Expo. It streamlines the process of submitting and tracking leave requests, managing employee information, and providing administrators with tools to review and approve/reject requests.
@@ -302,8 +321,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For support, email: support@hrapp.example.com
-Or create an issue in the repository.
+For support, create an issue in the repository.
 
 ## Changelog
 
